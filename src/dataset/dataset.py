@@ -154,6 +154,24 @@ class Dataset:
         self.entities = list(self.entity_to_id.keys())
         self.entity_ids = list(self.entity_to_id.values())
 
+    def save_mappings_to_separate_txt(self, dataset: str):
+        """
+        Serializza entity_to_id e relation_to_id in due file TXT separati con formato 'nome TAB id'.
+
+        Args:
+            base_path (str): Percorso base dove salvare i file (senza estensione).
+                            I file verranno creati come <base_path>_entities.txt e <base_path>_relations.txt
+        """
+        # Salva entity_to_id
+        with open(f"data/{dataset}/entity2id.txt", 'w', encoding='utf-8') as f:
+            for entity, id_ in sorted(self.entity_to_id.items(), key=lambda x: x[1]):
+                f.write(f"{entity}\t{id_}\n")
+
+        # Salva relation_to_id
+        with open(f"data/{dataset}/relation2id.txt", 'w', encoding='utf-8') as f:
+            for relation, id_ in sorted(self.relation_to_id.items(), key=lambda x: x[1]):
+                f.write(f"{relation}\t{id_}\n")
+
     @property
     def training(self):
         return self.dataset.training

@@ -13,7 +13,7 @@ parser.add_argument('--model', type=str, required=True, help='Nome del modello u
 args = parser.parse_args()
 
 # Caricamento mapping
-data_path = "./data/"
+data_path = "../../../data/"
 entity2id = {}
 file_path = f"{data_path}{args.dataset}/entity2id.txt"
 with open(file_path, "r") as f:
