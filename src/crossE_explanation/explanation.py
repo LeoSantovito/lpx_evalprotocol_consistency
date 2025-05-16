@@ -43,6 +43,7 @@ def explanations_to_json(paths_dict, data):
     Convert the explanations dictionary into JSON format with:
     - pred: la tripla predetta [h, r, t]
     - explanation: lista di triple separate che compongono la spiegazione
+    Le triple devono essere nel formato head tail relation
     """
     id_to_entity, id_to_relation = load_id_to_name_mappings()
 

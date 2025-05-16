@@ -39,7 +39,7 @@ def main():
             # Aggiungi tutte le classi a cui l'entità appartiene
             class_ids = [class2id[class_name] for class_name in classes if class_name in class2id]
 
-            # Se l'entità ha più classi, associamo la lista degli ID delle classi
+            # Se l'entità ha più classi, associa la lista degli ID delle classi
             ent2class_dict[entity_id] = class_ids
 
     # Salva il dizionario come file .pkl

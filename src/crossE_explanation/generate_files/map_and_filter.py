@@ -36,7 +36,7 @@ def backup_original_files(dataset_name: str):
 
 def overwrite_with_filtered(dataset: Dataset, dataset_name: str):
     """
-    Sovrascrive i file di triple (train, valid, test) con versioni filtrate usando i nomi.
+    Sovrascrive i file di triple (train, valid, test) con versioni filtrate (ottenute con il caricamento con Dataset).
     """
     id2entity = {v: k for k, v in dataset.entity_to_id.items()}
     id2relation = {v: k for k, v in dataset.relation_to_id.items()}

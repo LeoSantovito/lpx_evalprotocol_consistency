@@ -49,7 +49,7 @@ def main():
     salva_mappa(f"data/{args.dataset}/domain2id.txt", domini)
     salva_mappa(f"data/{args.dataset}/range2id.txt", range)
 
-    print("✅ File scritti correttamente. 'set()' ignorato.")
+    print("File generati correttamente.")
 
 if __name__ == "__main__":
     main()

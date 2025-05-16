@@ -31,24 +31,24 @@ def load_data(model_path: str, entity2id_path: str, relation2id_path: str):
     :param relation2id_path: path to the relation2id file
     :return: data loaded in the form of list of lists; E.g ent_emb = [[emb1 numbs], [emb2 numbs], ...]
     """
-    # Load the model
+    # Carica il modello
     model = torch.load(model_path)
     entity_emb = model['entity_embeddings'].cpu().numpy()
     # Calcola il punto di divisione
     num_relations = model['relation_embeddings'].shape[0]
-    split_point = num_relations // 2  # Divisione per ottenere la metà
+    split_point = num_relations // 2
     # Estrai gli embeddings
     rel_emb = model['relation_embeddings'][:split_point].cpu().numpy()  # Prima metà → relazioni normali
     inv_rel_emb = model['relation_embeddings'][split_point:].cpu().numpy()  # Seconda metà → relazioni inverse
 
-    # Load entity2id mapping
+    # Caricamento entity2id mapping
     entity2id = {}
     with open(entity2id_path, 'r') as f:
         for line in f:
             entity, id = line.strip().split('\t')
             entity2id[entity] = int(id)
 
-    # Load relation2id mapping
+    # Caricamento relation2id mapping
     relation2id = {}
     with open(relation2id_path, 'r') as f:
         for line in f:

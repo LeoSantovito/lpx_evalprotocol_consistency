@@ -63,7 +63,7 @@ def main():
     with open(f'data/{args.dataset}/rs_range2id_dict.pkl', 'wb') as f:
         pickle.dump(rs_range2id_dict, f)
 
-    print("Dizionari salvati con successo.")
+    print("Dizionari salvati con successo nei file rs_domain2id_dict.pkl e rs_range2id_dict.pkl.")
 
 if __name__ == "__main__":
     main()

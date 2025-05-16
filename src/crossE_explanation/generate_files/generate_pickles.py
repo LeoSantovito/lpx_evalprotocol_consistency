@@ -48,7 +48,6 @@ for _, row in transe_data.iterrows():
 test_triples_ids = []
 test_predicted_tails = []
 
-# Modifica questa parte del codice:
 for s, p, o in test_triples:
     try:
         h = entity2id[s]
@@ -82,4 +81,4 @@ with open(f"{model_pickle_dir}/test_triples.pkl", "wb") as f:
 with open(f"{model_pickle_dir}/test_predicted_tails.pkl", "wb") as f:
     pickle.dump(test_predicted_tails, f)
 
-print(f"File generati correttamente in {model_pickle_dir}/")
+print(f"File test_triples.pkl e test_predicted_tail.pkl generati in {model_pickle_dir}/")

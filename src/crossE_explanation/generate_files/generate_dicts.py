@@ -58,4 +58,4 @@ with open(f"{model_pickle_dir}/train_hr_t.pkl", "wb") as f:
 with open(f"{model_pickle_dir}/train_tr_h.pkl", "wb") as f:
     pickle.dump(dict(train_tr_h), f)
 
-print(f"File generati correttamente in {model_pickle_dir}/")
+print(f"File train_hr_t.pkl e train_tr_h.pkl generati in {model_pickle_dir}/")
