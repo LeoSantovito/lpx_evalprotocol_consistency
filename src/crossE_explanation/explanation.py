@@ -40,7 +40,7 @@ def load_id_to_name_mappings():
 
 def explanations_to_json(paths_dict, data):
     """
-    Convert the explanations dictionary into JSON format with:
+    Converte il dizionario con le predizioni in un formato JSON, con i campi:
     - pred: la tripla predetta [h, r, t]
     - explanation: lista di triple separate che compongono la spiegazione
     Le triple devono essere nel formato head tail relation

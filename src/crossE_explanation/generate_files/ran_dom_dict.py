@@ -25,7 +25,7 @@ def main():
     rs_domain2id_dict = {}
     rs_range2id_dict = {}
 
-    # Lettura CSV con modulo csv
+    # Lettura CSV
     with open(f'data/{args.dataset}/relations.csv', 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -35,9 +35,9 @@ def main():
 
             relation_id = relation2id.get(relation_name)
             if relation_id is None:
-                continue  # skip unknown relations
+                continue
 
-            # Eval sicuro su set string
+
             try:
                 domains_set = eval(domains_str) if domains_str.strip() else set()
                 ranges_set = eval(ranges_str) if ranges_str.strip() else set()

@@ -70,7 +70,7 @@ for s, p, o in test_triples:
         print(f"Errore con la tripla {s}, {p}, {o}: {str(e)} mancante")
         continue
         
-# Creazione directory modello se non esiste
+# Creazione directory se non esiste
 model_pickle_dir = f"pickles/{args.model}_{args.dataset}"
 os.makedirs(model_pickle_dir, exist_ok=True)
 

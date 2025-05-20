@@ -5,7 +5,7 @@ from src.dataset import Dataset
 
 def save_dataset_mappings(dataset_name: str):
     """
-    Carica un dataset e salva i mapping entity_to_id e relation_to_id in file separati.
+    Carica un dataset e salva i mapping entity2id e relation2id in file separati.
     """
     print(f"Caricamento dataset {dataset_name}...")
     dataset = Dataset(dataset_name)

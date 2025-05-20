@@ -47,7 +47,7 @@ for s, p, o in train_triples:
     train_hr_t[h][r].add(t)
     train_tr_h[t][r].add(h)
 
-# Creazione directory modello se non esiste
+# Creazione directory se non esiste
 model_pickle_dir = f"pickles/{args.model}_{args.dataset}"
 os.makedirs(model_pickle_dir, exist_ok=True)
 
