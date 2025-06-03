@@ -1,48 +1,54 @@
 import pandas as pd
 import pickle
-import ast
 import argparse
 
+def parse_classlike_field(value):
+    """Pulisce e restituisce una lista di valori da stringhe tipo {dbo:A, dbo:B}"""
+    if pd.isna(value):
+        return []
+    cleaned = value.strip('{}').replace(' ', '')
+    return cleaned.split(',') if cleaned else []
+
 def main():
-    # Configura il parser degli argomenti
+    # Parser degli argomenti
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', required=True, help="Nome del dataset (es. 'DB50K')")
     args = parser.parse_args()
 
-    # Carica il file entities.csv (entità, classi)
+    # Carica il file entities.csv
     entities_df = pd.read_csv(f'data/{args.dataset}/entities.csv')
 
-    # Carica entity2id.txt (nome -> id entità)
+    # Carica entity2id.txt
     entity2id = {}
     with open(f'data/{args.dataset}/entity2id.txt', 'r', encoding='utf-8') as f:
         for line in f:
             entity_name, entity_id = line.strip().split('\t')
             entity2id[entity_name] = int(entity_id)
 
-    # Carica class2id.txt (nome -> id classe)
+    # Carica class2id.txt
     class2id = {}
     with open(f'data/{args.dataset}/class2id.txt', 'r', encoding='utf-8') as f:
+        next(f)
         for line in f:
             class_name, class_id = line.strip().split('\t')
             class2id[class_name] = int(class_id)
 
-    # Crea il dizionario ent2class_dict
+    # Costruisce il dizionario entità → classi
     ent2class_dict = {}
 
     for _, row in entities_df.iterrows():
-        entity_name = row['entity']
-        # Converte la stringa del set in un vero oggetto set
-        classes = ast.literal_eval(row['classes'])
+        entity_name = row['label']
+        classes = parse_classlike_field(row['classSet'])
 
         if entity_name in entity2id:
             entity_id = entity2id[entity_name]
-            # Aggiungi tutte le classi a cui l'entità appartiene
-            class_ids = [class2id[class_name] for class_name in classes if class_name in class2id]
+            class_ids = [class2id[c] for c in classes if c in class2id]
+            if class_ids:
+                ent2class_dict[entity_id] = class_ids
+            else:
+                ent2class_dict[entity_id] = []
 
-            # Se l'entità ha più classi, associa la lista degli ID delle classi
-            ent2class_dict[entity_id] = class_ids
-
-    # Salva il dizionario come file .pkl
+    # Salvataggio su file .pkl
     with open(f'data/{args.dataset}/entity2class_dict.pkl', 'wb') as f:
         pickle.dump(ent2class_dict, f)
 
