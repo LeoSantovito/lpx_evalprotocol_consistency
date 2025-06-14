@@ -4,6 +4,7 @@ import pickle
 import argparse
 import os
 from collections import defaultdict
+from src.dataset import Dataset
 
 # Configurazione argomenti
 parser = argparse.ArgumentParser(description='Genera file pickle per le predizioni.')
@@ -11,65 +12,59 @@ parser.add_argument('--dataset', type=str, required=True, help='Nome del dataset
 parser.add_argument('--model', type=str, required=True, help='Nome del modello usato')
 args = parser.parse_args()
 
-# Caricamento mapping
-entity2id = {}
-file_path = f"./data/{args.dataset}/entity2id.txt"
-with open(file_path, "r") as f:
-    for line in f.readlines():
-        name, eid = line.strip().split('\t')
-        entity2id[name] = int(eid)
-
-relation2id = {}
-file_path = f"./data/{args.dataset}/relation2id.txt"
-with open(file_path, "r") as f:
-    for line in f.readlines():
-        name, rid = line.strip().split('\t')
-        relation2id[name] = int(rid)
+# Caricamento dataset
+dataset_obj = Dataset(dataset=args.dataset)
 
 # Caricamento triple di test
 test_triples = []
 file_path = f"./data/{args.dataset}/test.txt"
 with open(file_path, "r") as f:
-    for line in f.readlines():
+    for line in f:
         s, p, o = line.strip().split('\t')
         test_triples.append((s, p, o))
 
 # Caricamento predizioni
-file_path = f"./preds/{args.model}_{args.dataset}.csv"
-transe_data = pd.read_csv(file_path, sep=';')
+file_path = f"./selected_preds/{args.model}_{args.dataset}.csv"
+transe_data = pd.read_csv(file_path, sep='\t', header=None, names=['s', 'p', 'o'])
 
 # Preparazione predizioni
 predictions = defaultdict(list)
 for _, row in transe_data.iterrows():
     key = (row['s'], row['p'])
-    predictions[key].append((row['o'], row['o_rank']))
+    predictions[key].append(row['o'])
 
-# Costruzione strutture finali
+# Costruzione strutture finali (solo per triple con predizioni)
 test_triples_ids = []
 test_predicted_tails = []
 
 for s, p, o in test_triples:
-    try:
-        h = entity2id[s]
-        r = relation2id[p]
-        t = entity2id[o]
-        test_triples_ids.append([h, t, r])
+    key = (s, p)
+    if key not in predictions:
+        continue  # salta triple senza predizioni
 
-        preds = predictions.get((s, p), [])
-        sorted_preds = sorted(preds, key=lambda x: x[1])
-        tail_ids = [entity2id[tail] for tail, _ in sorted_preds if tail != o and tail in entity2id]
+    preds = predictions[key]
 
-        if o in entity2id:
-            tail_ids.insert(0, entity2id[o])
-        else:
-            print(f"Attenzione: entità {o} mancante in entity2id.txt")
-            continue
-
-        test_predicted_tails.append(np.array(tail_ids))
-    except KeyError as e:
-        print(f"Errore con la tripla {s}, {p}, {o}: {str(e)} mancante")
+    if o not in preds:
         continue
-        
+
+    try:
+        h = dataset_obj.entity_to_id[s]
+        r = dataset_obj.relation_to_id[p]
+        t = dataset_obj.entity_to_id[o]
+    except KeyError as e:
+        print(f"Errore con la tripla {s}, {p}, {o}: {str(e)} mancante nel dataset")
+        continue
+
+    tail_ids = [dataset_obj.entity_to_id[tail] for tail in preds
+                if tail != o and tail in dataset_obj.entity_to_id]
+
+    if o in dataset_obj.entity_to_id:
+        tail_ids.insert(0, dataset_obj.entity_to_id[o])
+
+    if tail_ids:
+        test_triples_ids.append([h, t, r])
+        test_predicted_tails.append(np.array(tail_ids))
+
 # Creazione directory se non esiste
 model_pickle_dir = f"pickles/{args.model}_{args.dataset}"
 os.makedirs(model_pickle_dir, exist_ok=True)
@@ -81,4 +76,4 @@ with open(f"{model_pickle_dir}/test_triples.pkl", "wb") as f:
 with open(f"{model_pickle_dir}/test_predicted_tails.pkl", "wb") as f:
     pickle.dump(test_predicted_tails, f)
 
-print(f"File test_triples.pkl e test_predicted_tail.pkl generati in {model_pickle_dir}/")
+print(f"File test_triples.pkl e test_predicted_tails.pkl generati in {model_pickle_dir}/")

@@ -2,6 +2,7 @@ import pickle
 import argparse
 import os
 from collections import defaultdict
+from src.dataset import Dataset
 
 def default_dict_factory():
     return defaultdict(set)
@@ -12,25 +13,12 @@ parser.add_argument('--dataset', type=str, required=True, help='Nome del dataset
 parser.add_argument('--model', type=str, required=True, help='Nome del modello usato')
 args = parser.parse_args()
 
-# Caricamento mapping
-data_path = "../../../data/"
-entity2id = {}
-file_path = f"{data_path}{args.dataset}/entity2id.txt"
-with open(file_path, "r") as f:
-    for line in f.readlines():
-        name, eid = line.strip().split('\t')
-        entity2id[name] = int(eid)
-
-relation2id = {}
-file_path = f"{data_path}{args.dataset}/relation2id.txt"
-with open(file_path, "r") as f:
-    for line in f.readlines():
-        name, rid = line.strip().split('\t')
-        relation2id[name] = int(rid)
+# Inizializzazione dataset
+dataset_obj = Dataset(dataset=args.dataset)
 
 # Caricamento triple di training
 train_triples = []
-file_path = f"{data_path}{args.dataset}/train.txt"
+file_path = f"data/{args.dataset}/train.txt"
 with open(file_path, "r") as f:
     for line in f.readlines():
         s, p, o = line.strip().split('\t')
@@ -41,11 +29,15 @@ train_hr_t = defaultdict(default_dict_factory)  # (head, relation) -> {tails}
 train_tr_h = defaultdict(default_dict_factory)  # (tail, relation) -> {heads}
 
 for s, p, o in train_triples:
-    h = entity2id[s]
-    r = relation2id[p]
-    t = entity2id[o]
-    train_hr_t[h][r].add(t)
-    train_tr_h[t][r].add(h)
+    try:
+        h = dataset_obj.entity_to_id[s]
+        r = dataset_obj.relation_to_id[p]
+        t = dataset_obj.entity_to_id[o]
+        train_hr_t[h][r].add(t)
+        train_tr_h[t][r].add(h)
+    except KeyError as e:
+        print(f"Errore con la tripla {s}, {p}, {o}: {str(e)} mancante nel dataset")
+        continue
 
 # Creazione directory se non esiste
 model_pickle_dir = f"pickles/{args.model}_{args.dataset}"

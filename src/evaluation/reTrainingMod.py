@@ -191,7 +191,7 @@ def main(
     table = wandb.Table(dataframe=eval_df)
     wandb.log({"evaluations": table})
 
-    end_time = time.time()  # 👈 Fine tempo
+    end_time = time.time()
     print(f"Tempo totale di esecuzione: {end_time - start_time:.2f} secondi")
 
 

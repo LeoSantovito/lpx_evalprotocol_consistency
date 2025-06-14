@@ -1,6 +1,8 @@
 import pandas as pd
 import pickle
 import argparse
+from src.dataset import Dataset
+
 
 def parse_classlike_field(value):
     """Pulisce e restituisce una lista di valori da stringhe tipo {dbo:A, dbo:B}"""
@@ -8,6 +10,7 @@ def parse_classlike_field(value):
         return []
     cleaned = value.strip('{}').replace(' ', '')
     return cleaned.split(',') if cleaned else []
+
 
 def main():
     # Parser degli argomenti
@@ -17,23 +20,22 @@ def main():
 
     dataset_path = f'data/{args.dataset}'
 
-    # Carica il file relations.csv
-    relations_df = pd.read_csv(f'{dataset_path}/relations.csv')
+    # Inizializza il dataset
+    dataset = Dataset(args.dataset)
 
-    # Carica relation2id.txt
-    relation2id = {}
-    with open(f'{dataset_path}/relation2id.txt', 'r', encoding='utf-8') as f:
-        for line in f:
-            rel_name, rel_id = line.strip().split('\t')
-            relation2id[rel_name] = int(rel_id)
+    # Ottieni il mapping relazione-id dal dataset
+    relation2id = dataset.relation_to_id
 
-    # Carica class2id.txt (usato sia per domain che per range)
+    # Carica class2id.txt
     class2id = {}
     with open(f'{dataset_path}/class2id.txt', 'r', encoding='utf-8') as f:
-        next(f)
+        next(f)  # Salta l'header
         for line in f:
             class_name, class_id = line.strip().split('\t')
             class2id[class_name] = int(class_id)
+
+    # Carica il file relations.csv
+    relations_df = pd.read_csv(f'{dataset_path}/reasoned/relations.csv')
 
     # Costruisce i dizionari relazione → classi di dominio e range
     rs_domain_dict = {}
@@ -65,6 +67,7 @@ def main():
         pickle.dump(rs_range_dict, f)
 
     print("Dizionari rs_domain2id_dict.pkl e rs_range2id_dict.pkl creati con successo!")
+
 
 if __name__ == "__main__":
     main()

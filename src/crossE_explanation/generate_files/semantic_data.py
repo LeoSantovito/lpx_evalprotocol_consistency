@@ -29,7 +29,7 @@ def generate_class_mapping(relations_path, entities_path):
         reader = csv.DictReader(f)
         for row in reader:
             # Estrai classi da classSet
-            entity_classes = extract_classes_from_set(row['classSet'])
+            entity_classes = extract_classes_from_set(row['classes'])
             classes.update(entity_classes)
 
     # Ordina le classi e assegna ID
@@ -62,8 +62,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Path dei file di input
-    relations_path = os.path.join(data_dir, 'relations.csv')
-    entities_path = os.path.join(data_dir, 'entities.csv')
+    relations_path = os.path.join(data_dir, 'reasoned/relations.csv')
+    entities_path = os.path.join(data_dir, 'reasoned/entities.csv')
 
     # Verifica che i file esistano
     if not os.path.isfile(relations_path):

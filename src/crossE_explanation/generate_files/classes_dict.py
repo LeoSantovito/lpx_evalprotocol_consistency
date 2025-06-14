@@ -1,6 +1,7 @@
 import pandas as pd
 import pickle
 import argparse
+from src.dataset import Dataset
 
 def parse_classlike_field(value):
     """Pulisce e restituisce una lista di valori da stringhe tipo {dbo:A, dbo:B}"""
@@ -15,20 +16,19 @@ def main():
     parser.add_argument('--dataset', required=True, help="Nome del dataset (es. 'DB50K')")
     args = parser.parse_args()
 
-    # Carica il file entities.csv
-    entities_df = pd.read_csv(f'data/{args.dataset}/entities.csv')
+    # Inizializza la classe Dataset
+    dataset = Dataset(args.dataset)
 
-    # Carica entity2id.txt
-    entity2id = {}
-    with open(f'data/{args.dataset}/entity2id.txt', 'r', encoding='utf-8') as f:
-        for line in f:
-            entity_name, entity_id = line.strip().split('\t')
-            entity2id[entity_name] = int(entity_id)
+    # Carica il file entities.csv
+    entities_df = pd.read_csv(f'data/{args.dataset}/reasoned/entities.csv')
+
+    # Ottieni entity_to_id dalla classe Dataset
+    entity2id = dataset.entity_to_id
 
     # Carica class2id.txt
     class2id = {}
     with open(f'data/{args.dataset}/class2id.txt', 'r', encoding='utf-8') as f:
-        next(f)
+        next(f)  # Salta l'header se presente
         for line in f:
             class_name, class_id = line.strip().split('\t')
             class2id[class_name] = int(class_id)
@@ -37,8 +37,8 @@ def main():
     ent2class_dict = {}
 
     for _, row in entities_df.iterrows():
-        entity_name = row['label']
-        classes = parse_classlike_field(row['classSet'])
+        entity_name = row['entity']
+        classes = parse_classlike_field(row['classes'])
 
         if entity_name in entity2id:
             entity_id = entity2id[entity_name]

@@ -7,45 +7,18 @@ import json
 from global_logger import Log
 import multiprocessing
 from itertools import islice
+from src.dataset import Dataset
 
 from threading import Thread, RLock
 
 
-def load_id_to_name_mappings():
-    """Load mappings from ID to name from entity2id.txt and relation2id.txt files"""
-    id_to_entity = {}
-    id_to_relation = {}
-
-    try:
-        # Load entity mappings (format: name<TAB>id)
-        with open(f"./data/{args.dataset_name}/entity2id.txt", 'r', encoding='utf-8') as f:
-            for line in f:
-                if line.strip():
-                    name, e_id = line.strip().split('\t')
-                    id_to_entity[int(e_id)] = name
-
-        # Load relation mappings (format: name<TAB>id)
-        with open(f"./data/{args.dataset_name}/relation2id.txt", 'r', encoding='utf-8') as f:
-            for line in f:
-                if line.strip():
-                    name, r_id = line.strip().split('\t')
-                    id_to_relation[int(r_id)] = name
-
-    except FileNotFoundError as e:
-        log.error(f"Could not load ID-to-name mappings: {e}")
-        log.error("Falling back to using IDs")
-
-    return id_to_entity, id_to_relation
-
-
-def explanations_to_json(paths_dict, data):
+def explanations_to_json(paths_dict, data, dataset):
     """
-    Converte il dizionario con le predizioni in un formato JSON, con i campi:
-    - pred: la tripla predetta [h, r, t]
-    - explanation: lista di triple separate che compongono la spiegazione
-    Le triple devono essere nel formato head tail relation
+    Converte il dizionario con le predizioni in un formato JSON, usando i mapping dalla classe Dataset
     """
-    id_to_entity, id_to_relation = load_id_to_name_mappings()
+
+    id_to_entity = dataset.id_to_entity
+    id_to_relation = dataset.id_to_relation
 
     json_data = []
 
@@ -69,14 +42,14 @@ def explanations_to_json(paths_dict, data):
                     for expl in expl_list:
                         path = expl.path
 
-                        # Convert path to separate triples
-                        if len(path) == 3:  # Direct path [h, r, t]
+                        # Convert paths to triples
+                        if len(path) == 3:  # [h, r, t]
                             h = id_to_entity.get(int(path[0]), str(path[0]))
                             r = id_to_relation.get(int(path[1]), str(path[1]))
                             t = id_to_entity.get(int(path[2]), str(path[2]))
                             pred_entry["explanation"].append([h, r, t])
 
-                        elif len(path) == 5:  # Complex path [h, r1, e, r2, t]
+                        elif len(path) == 5:  # [h, r1, e, r2, t]
                             # First triple: h -r1-> e
                             h = id_to_entity.get(int(path[0]), str(path[0]))
                             r1 = id_to_relation.get(int(path[1]), str(path[1]))
@@ -88,10 +61,11 @@ def explanations_to_json(paths_dict, data):
                             t = id_to_entity.get(int(path[4]), str(path[4]))
                             pred_entry["explanation"].append([e, r2, t])
 
-                if pred_entry["explanation"]:  # Only add if we have explanations
+                if pred_entry["explanation"]:
                     json_data.append(pred_entry)
 
     return json_data
+
 
 def take(n, iterable):
     "Return first n items of the iterable as a list"
@@ -696,6 +670,7 @@ def main_process(data: DataManager, num_tripla: int, explainer: Explainer, retur
 
 
 def main(manager):
+    data = Dataset(args.dataset_name)
     dataset = DataManager(args.data_dir, args.pred_perc)
     log.info('Data loaded')
     log.info(
@@ -738,7 +713,7 @@ def main(manager):
     log.info(
         f"Avg support for each type of explantion (average support for each explanation, averaged for each type: {avg_sup_type}")
     # Convert explanations to JSON format
-    json_data = explanations_to_json(paths_dictionary, dataset)
+    json_data = explanations_to_json(paths_dictionary, dataset, data)
 
     # Save to JSON file
     output_file = f"explanations/kelpie_necessary_{args.model_name}_{args.dataset_name}_None_first.json"

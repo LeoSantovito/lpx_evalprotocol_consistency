@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import pandas as pd
 import networkx as nx
+import pickle
 
 from ast import literal_eval
 from collections import defaultdict
@@ -60,9 +61,9 @@ class Dataset:
                 DB100K_REASONED_PATH / "entities.csv",
                 converters={"classes": literal_eval},
             )
-            e_sem_impl["entity"] = e_sem_impl["entity"].map(self.entity_to_id.get)
-            e_sem_impl["classes"] = e_sem_impl["classes"].map(sorted)
-            e_sem_impl["classes_str"] = e_sem_impl["classes"].map(", ".join)
+            e_sem_impl["entity"] = e_sem_impl["label"].map(self.entity_to_id.get)
+            e_sem_impl["classes"] = e_sem_impl["classSet"].map(sorted)
+            e_sem_impl["classes_str"] = e_sem_impl["classSet"].map(", ".join)
 
             self.entities_semantic = e_sem
             self.entities_semantic_impl = e_sem_impl
@@ -77,8 +78,8 @@ class Dataset:
                 DB50K_PATH / "entities.csv",
                 converters={"classes": literal_eval},
             )
-            e_sem["entity"] = e_sem["entity"].map(self.entity_to_id.get)
-            e_sem["classes_str"] = e_sem["classes"].map(", ".join)
+            e_sem["entity"] = e_sem["label"].map(self.entity_to_id.get)  # attenzione al nome colonna in entities
+            e_sem["classes_str"] = e_sem["classSet"].map(", ".join)
 
             e_sem_impl = pd.read_csv(
                 DB50K_REASONED_PATH / "entities.csv",
@@ -100,7 +101,7 @@ class Dataset:
                 training=DATA_PATH / dataset / "train.txt",
                 testing=DATA_PATH / dataset / "test.txt",
                 validation=DATA_PATH / dataset / "valid.txt",
-            )            
+            )
 
         self.id_to_entity = {v: k for k, v in self.dataset.entity_to_id.items()}
         self.id_to_relation = {v: k for k, v in self.dataset.relation_to_id.items()}
@@ -303,25 +304,114 @@ class Dataset:
 
     def remove_training_triple(self, triple):
         s, p, o = triple
-        self.dataset.training.mapped_triples = self.dataset.training.mapped_triples[
-            ~(
-                (self.dataset.training.mapped_triples[:, 0] == s)
-                & (self.dataset.training.mapped_triples[:, 1] == p)
-                & (self.dataset.training.mapped_triples[:, 2] == o)
-            )
-        ]
-        self.entity_to_training_triples[s].remove(triple)
-        if s != o:
-            self.entity_to_training_triples[o].remove(triple)
-        self.entity_to_degree[s] -= 1
-        if s != o:
-            self.entity_to_degree[o] -= 1
-        self.to_filter[(s, p)].remove(o)
-        self.train_to_filter[(s, p)].remove(o)
 
-    def remove_training_triples(self, triples):
-        for triple in set(triples):
-            self.remove_training_triple(triple)
+        # Crea maschera per la tripla originale e inversa
+        original_mask = (
+                (self.dataset.training.mapped_triples[:, 0] == s) &
+                (self.dataset.training.mapped_triples[:, 1] == p) &
+                (self.dataset.training.mapped_triples[:, 2] == o)
+        )
+        inverse_mask = (
+                (self.dataset.training.mapped_triples[:, 0] == o) &
+                (self.dataset.training.mapped_triples[:, 1] == p) &
+                (self.dataset.training.mapped_triples[:, 2] == s)
+        )
+
+        # Trova gli indici delle triple da rimuovere
+        original_idx = torch.where(original_mask)[0]
+        inverse_idx = torch.where(inverse_mask)[0]
+
+        if len(original_idx) > 0:
+            # Rimuovi la tripla originale
+            keep_mask = torch.ones(len(self.dataset.training.mapped_triples), dtype=torch.bool)
+            keep_mask[original_idx] = False
+            self.dataset.training.mapped_triples = self.dataset.training.mapped_triples[keep_mask]
+
+            # Aggiorna le strutture dati
+            try:
+                self.entity_to_training_triples[s].remove(triple)
+                if s != o:
+                    self.entity_to_training_triples[o].remove(triple)
+                self.entity_to_degree[s] -= 1
+                if s != o:
+                    self.entity_to_degree[o] -= 1
+                self.to_filter[(s, p)].remove(o)
+                self.train_to_filter[(s, p)].remove(o)
+            except (KeyError, ValueError):
+                pass
+
+        elif len(inverse_idx) > 0:
+            # Rimuovi la tripla inversa
+            keep_mask = torch.ones(len(self.dataset.training.mapped_triples), dtype=torch.bool)
+            keep_mask[inverse_idx] = False
+            self.dataset.training.mapped_triples = self.dataset.training.mapped_triples[keep_mask]
+
+            # Aggiorna le strutture dati per la tripla inversa
+            inverse_triple = (o, p, s)
+            try:
+                self.entity_to_training_triples[o].remove(inverse_triple)
+                if s != o:
+                    self.entity_to_training_triples[s].remove(inverse_triple)
+                self.entity_to_degree[o] -= 1
+                if s != o:
+                    self.entity_to_degree[s] -= 1
+                self.to_filter[(o, p)].remove(s)
+                self.train_to_filter[(o, p)].remove(s)
+            except (KeyError, ValueError):
+                pass
+
+    def remove_training_triples(self, triples, log_file="triple_removal.log"):
+        # Converti in set per rimozioni duplicate
+        unique_triples = set(triples)
+
+        # Prepara maschera di mantenimento
+        keep_mask = torch.ones(len(self.dataset.training.mapped_triples), dtype=torch.bool)
+
+        # Crea array numpy delle triple esistenti per confronto veloce
+        existing_triples = self.dataset.training.mapped_triples.numpy()
+        existing_triples_set = {tuple(t) for t in existing_triples}
+
+        with open(log_file, "a", encoding="utf-8") as log:
+            # Prima passata: trova tutte le triple da rimuovere
+            to_remove = set()
+            for triple in unique_triples:
+                s, p, o = triple
+                if (s, p, o) in existing_triples_set:
+                    to_remove.add((s, p, o))
+                    log.write(f"Tripla rimossa: {self.labels_triple(triple)}\n")
+                elif (o, p, s) in existing_triples_set:
+                    to_remove.add((o, p, s))
+                    log.write(f"Tripla inversa rimossa: {self.labels_triple((o, p, s))}\n")
+                else:
+                    log.write(f"Tripla non trovata: {self.labels_triple(triple)}\n")
+
+            # Seconda passata: applica la rimozione in batch
+            if to_remove:
+                # Crea maschera di rimozione
+                remove_mask = np.zeros(len(existing_triples), dtype=bool)
+                for i, t in enumerate(existing_triples):
+                    if tuple(t) in to_remove:
+                        remove_mask[i] = True
+
+                # Applica la maschera
+                self.dataset.training.mapped_triples = self.dataset.training.mapped_triples[~remove_mask]
+
+                # Aggiorna le strutture dati
+                for triple in to_remove:
+                    s, p, o = triple
+                    try:
+                        self.entity_to_training_triples[s].remove(triple)
+                        if s != o:
+                            self.entity_to_training_triples[o].remove(triple)
+                        self.entity_to_degree[s] = max(0, self.entity_to_degree.get(s, 0) - 1)
+                        if s != o:
+                            self.entity_to_degree[o] = max(0, self.entity_to_degree.get(o, 0) - 1)
+                        if (s, p) in self.to_filter:
+                            self.to_filter[(s, p)].remove(o)
+                        if (s, p) in self.train_to_filter:
+                            self.train_to_filter[(s, p)].remove(o)
+                    except KeyError:
+                        pass
 
     def _compute_relation_to_type(self):
         """
@@ -423,7 +513,7 @@ class Dataset:
             quotient_entity_to_triples[row["s"]].append((row["s"], row["p"], row["o"]))
             quotient_entity_to_triples[row["o"]].append((row["s"], row["p"], row["o"]))
         self.quotient_entity_to_triples = quotient_entity_to_triples
-    
+
     def get_quotient_entity(self, entity):
         for qe_id, qe in self.quotient_entities.items():
             if entity in qe:
