@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import linregress, pearsonr
 
-# I tuoi dati
+
 x =  [ 0.479, 0.489, 0.492, 0.575, 0.565, 0.642, 0.785, 0.788, 0.794 ]
 
 y =  [ 0.089, 0.09, 0.104, 0.042, 0.001, 0.056, 0.074, 0.061, 0.078]
@@ -29,7 +29,7 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-# Stampa nel terminale
+
 print(f"Coefficiente di Pearson r = {r_value:.4f}")
 print(f"Valore p = {p_value:.4g}")
 
