@@ -13,7 +13,7 @@ Con il comando:
 python -m src.crossE_explanation.generate_files.map_and_filter <dataset>
 ```
 
-il dataset viene filtrato in modo che le triple di test contenti entità e/o relazioni mai osservate tra le triple di train vengano rimosse, e vengono creati i file `entity2id.txt` e `relation2id.txt` che associano al nome di ogni entità e relazione un ID numerico.
+il dataset viene filtrato in modo che le triple di test contenti entità e/o relazioni mai osservate tra le triple di train vengano rimosse.
 I nuovi file `train.txt`, `test.txt` e `valid.txt` (filtrati) sovrascrivono gli originali, che però vengono prima salvati nella cartella `original_files`.
 
 ---
@@ -28,7 +28,7 @@ python -m src.crossE_explanation.generate_files.generate_dicts \
     --model <modello>
 ```
 
-A partire dai file `entity2id.txt`, `relation2id.txt` e `train.txt` (contenente le triple di train in forma soggetto-verbo-oggetto, con i nomi di entità e relazioni), vengono creati i file `train_hr_t.pkl` e `train_tr_h.pkl`, contenenti rispettivamente:
+A partire dal file `train.txt` (contenente le triple di train in forma soggetto-verbo-oggetto, con i nomi di entità e relazioni), vengono creati i file `train_hr_t.pkl` e `train_tr_h.pkl`, contenenti rispettivamente:
 
 * un dizionario che mappa ogni coppia testa-relazione a tutte le code osservate tra le triple di train;
 * un dizionario che mappa a tutte le coppie coda-relazione le teste associate.
@@ -41,7 +41,7 @@ python -m src.crossE_explanation.generate_files.generate_pickles \
     --model <modello>
 ```
 
-A partire da `entity2id.txt`, `relation2id.txt` e `test.txt` (triple di test, stessa forma di `train.txt`) vengono ottenuti:
+A partire da `test.txt` (triple di test, stessa forma di `train.txt`) vengono ottenuti:
 
 * `test_triples.pkl`, contenente appunto le triple di test;
 * `test_predicted_tails.pkl`, contenente le code predette per le triple di test.
@@ -129,7 +129,7 @@ Lo script prende in input i file generati in precedenza; il file di predizioni e
 Per avviare il retraining con rimozione delle triple di spiegazione e salvare i risultati bisogna lanciare il comando:
 
 ```bash
-python -m src.evaluation.reTrainingMod \
+python -m src.evaluation.re-training \
     --dataset <dataset> \
     --model <modello> \
     --method kelpie \
@@ -139,7 +139,7 @@ python -m src.evaluation.reTrainingMod \
 Successivamente, con:
 
 ```bash
-python -m src.evaluation.reTrainingMod \
+python -m src.evaluation.re-training_metrics \
     --dataset <dataset> \
     --model <modello> \
     --method kelpie \
