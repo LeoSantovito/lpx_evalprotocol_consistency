@@ -35,3 +35,5 @@ python -m src.crossE_explanation.explanation --data pickles/<model>_<dataset>/ -
 python -m src.evaluation.re-training --dataset <dataset> --model <model> --method kelpie --mode necessary
 python -m src.evaluation.re-training_metrics --dataset <dataset> --model <model> --method kelpie --mode necessary
 ```
+
+The results of the experiments are available at the following link: https://figshare.com/articles/online_resource/Risultati_esperimenti_lpx_evalprotocol_consistency/29487839?file=56021153
